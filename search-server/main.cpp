@@ -8,10 +8,11 @@
 #include <vector>
 #include <cassert>
 #include <stdexcept>
+#include <numeric>
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
-
+const double E = 1e-6;
 string ReadLine() {
     string s;
     getline(cin, s);
@@ -83,10 +84,11 @@ public:
     template <typename StringContainer>
     explicit SearchServer(const StringContainer& stop_words)
             : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
-                
-                    for(const string& word : MakeUniqueNonEmptyStrings(stop_words)){
-                    if(!IsValidWord(word)){
-                        throw invalid_argument("Irregular stop words "s);
+                for(const string& word : MakeUniqueNonEmptyStrings(stop_words))
+                {
+                    if(!IsValidWord(word))
+                    {
+                        throw invalid_argument("Irregular stop words : cannot contain special characters"s);
                     }
                 }
 
@@ -96,17 +98,24 @@ public:
             : SearchServer(
             SplitIntoWords(stop_words_text))// Invoke delegating constructor from string container
     {
-               
     }
 
-     void AddDocument(int document_id, const string& document, DocumentStatus status,
-                                    const vector<int>& ratings) {
-        if(document_id<0 || documents_.count(document_id) ||!IsValidWord(document) ){
-            throw invalid_argument("Irregular document"s);
+    void AddDocument(int document_id, const string& document, DocumentStatus status,
+                     const vector<int>& ratings) {
+        if(document_id < 0)
+        {
+            throw invalid_argument("Document id can't be less than zero"s);
         }
 
+        if(documents_.count(document_id)){
+            throw invalid_argument("A document with such an ID already exists"s);
+        }
 
-        DocumentID.push_back(document_id);
+        if(!IsValidWord(document) ){
+            throw invalid_argument("The document cannot contain special characters"s);
+        }
+
+        document_ID.push_back(document_id);
 
         const vector<string> words = SplitIntoWordsNoStop(document);
         const double inv_word_count = 1.0 / words.size();
@@ -120,27 +129,22 @@ public:
 
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query,
-                                                DocumentPredicate document_predicate) const {
+                                      DocumentPredicate document_predicate) const {
 
         for(const string& word : SplitIntoWords(raw_query)){
             if(!IsValidWord(word)){
-                throw invalid_argument("Irregular query"s);
+                throw invalid_argument("Irregular query :  cannot contain special characters"s);
             }
         }
 
 
         const Query query = ParseQuery(raw_query);
-        for(const string& word : query.minus_words){
-            if(word[0]=='-' || word.empty()){
-                throw invalid_argument("Irregular query"s);
-            }
-        }
         vector<Document> match_doc;
         match_doc = FindAllDocuments(query, document_predicate);
 
         sort(match_doc.begin(), match_doc.end(),
              [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
+                 if (abs(lhs.relevance - rhs.relevance) < E) {
                      return lhs.rating > rhs.rating;
                  } else {
                      return lhs.relevance > rhs.relevance;
@@ -174,11 +178,6 @@ public:
             throw invalid_argument("Irregular query"s);
         }
 
-        for(auto word : query.minus_words){
-            if(word[0]=='-' || word.empty()){
-                throw invalid_argument("Irregular query"s);
-            }
-        }
         vector<string> matched_words;
         for (const string& word : query.plus_words) {
             if (word_to_document_freqs_.count(word) == 0) {
@@ -197,13 +196,15 @@ public:
                 break;
             }
         }
-       return {matched_words, documents_.at(document_id).status};
+        return {matched_words, documents_.at(document_id).status};
     }
 
     int GetDocumentId(int index) const {
-        if(index>=0 && index < DocumentID.size() ){
-            return DocumentID[index];
-        }else
+        if(index>=0 && index < document_ID.size())
+        {
+            return document_ID[index];
+        }
+        else
         {
             throw out_of_range("Invalid document index"s);
         }
@@ -218,7 +219,7 @@ private:
     const set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
-    vector<int> DocumentID;
+    vector<int> document_ID;
 
     bool IsStopWord(const string& word) const
     {
@@ -246,10 +247,7 @@ private:
         if (ratings.empty()) {
             return 0;
         }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
+        int rating_sum = accumulate(ratings.begin(),ratings.end(),0);
         return rating_sum / static_cast<int>(ratings.size());
     }
 
@@ -266,6 +264,11 @@ private:
             is_minus = true;
             text = text.substr(1);
         }
+        
+        if(text[0]=='-' || text.empty()){
+            throw invalid_argument("Irregular query "s);
+        }
+
         return {text, is_minus, IsStopWord(text)};
     }
 
@@ -328,4 +331,3 @@ private:
         return matched_documents;
     }
 };
-
