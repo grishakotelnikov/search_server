@@ -175,7 +175,7 @@ public:
         const Query query = ParseQuery(raw_query);
 
         if(!IsValidWord(raw_query)){
-            throw invalid_argument("Irregular query"s);
+            throw invalid_argument("Irregular query : cannot contain special char"s);
         }
 
         vector<string> matched_words;
@@ -266,7 +266,7 @@ private:
         }
         
         if(text[0]=='-' || text.empty()){
-            throw invalid_argument("Irregular query "s);
+            throw invalid_argument("Irregular : cannot be empty after '-' , and cannot contain  more 1 '-'");
         }
 
         return {text, is_minus, IsStopWord(text)};
