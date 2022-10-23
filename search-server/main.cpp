@@ -1,5 +1,5 @@
-#include <algorithm>
 #include <cmath>
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <set>
@@ -29,17 +29,22 @@ int ReadLineWithNumber() {
 vector<string> SplitIntoWords(const string& text) {
     vector<string> words;
     string word;
-    for (const char c : text) {
-        if (c == ' ') {
-            if (!word.empty()) {
+    for (const char c : text) 
+    {
+        if (c == ' ') 
+        {
+            if (!word.empty()) 
+            {
                 words.push_back(word);
                 word.clear();
             }
-        } else {
+        } else 
+        {
             word += c;
         }
     }
-    if (!word.empty()) {
+    if (!word.empty()) 
+    {
         words.push_back(word);
     }
 
@@ -64,7 +69,8 @@ template <typename StringContainer>
 set<string> MakeUniqueNonEmptyStrings(const StringContainer& strings) {
     set<string> non_empty_strings;
     for (const string& str : strings) {
-        if (!str.empty()) {
+        if (!str.empty()) 
+        {
             non_empty_strings.insert(str);
         }
     }
@@ -84,13 +90,13 @@ public:
     template <typename StringContainer>
     explicit SearchServer(const StringContainer& stop_words)
             : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
-                for(const string& word : MakeUniqueNonEmptyStrings(stop_words))
-                {
-                    if(!IsValidWord(word))
-                    {
-                        throw invalid_argument("Irregular stop words : cannot contain special characters"s);
-                    }
-                }
+        for (const string& word : MakeUniqueNonEmptyStrings(stop_words))
+        {
+            if (!IsValidWord(word))
+            {
+                throw invalid_argument("Irregular stop words : cannot contain special characters"s);
+            }
+        }
 
     }
 
@@ -100,30 +106,32 @@ public:
     {
     }
 
-    void AddDocument(int document_id, const string& document, DocumentStatus status,
+    void AddDocument(int document_Id, const string& document, DocumentStatus status,
                      const vector<int>& ratings) {
-        if(document_id < 0)
+        if (document_Id < 0)
         {
             throw invalid_argument("Document id can't be less than zero"s);
         }
 
-        if(documents_.count(document_id)){
+        if (documents_.count(document_Id))
+        {
             throw invalid_argument("A document with such an ID already exists"s);
         }
 
-        if(!IsValidWord(document) ){
+        if (!IsValidWord(document) )
+        {
             throw invalid_argument("The document cannot contain special characters"s);
         }
 
-        document_ID.push_back(document_id);
+        document_id.push_back(document_Id);
 
         const vector<string> words = SplitIntoWordsNoStop(document);
         const double inv_word_count = 1.0 / words.size();
         for (const string& word : words) {
-            word_to_document_freqs_[word][document_id] += inv_word_count;
+            word_to_document_freqs_[word][document_Id] += inv_word_count;
         }
 
-        documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
+        documents_.emplace(document_Id, DocumentData{ComputeAverageRating(ratings), status});
 
     }
 
@@ -132,7 +140,8 @@ public:
                                       DocumentPredicate document_predicate) const {
 
         for(const string& word : SplitIntoWords(raw_query)){
-            if(!IsValidWord(word)){
+            if (!IsValidWord(word))
+            {
                 throw invalid_argument("Irregular query :  cannot contain special characters"s);
             }
         }
@@ -144,13 +153,16 @@ public:
 
         sort(match_doc.begin(), match_doc.end(),
              [](const Document& lhs, const Document& rhs) {
-                 if (abs(lhs.relevance - rhs.relevance) < E) {
+                 if (abs(lhs.relevance - rhs.relevance) < E)
+                 {
                      return lhs.rating > rhs.rating;
-                 } else {
+                 } else
+                 {
                      return lhs.relevance > rhs.relevance;
                  }
              });
-        if (match_doc.size() > MAX_RESULT_DOCUMENT_COUNT) {
+        if (match_doc.size() > MAX_RESULT_DOCUMENT_COUNT)
+        {
             match_doc.resize(MAX_RESULT_DOCUMENT_COUNT);
         }
         return match_doc;
@@ -174,24 +186,29 @@ public:
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
         const Query query = ParseQuery(raw_query);
 
-        if(!IsValidWord(raw_query)){
+        if (!IsValidWord(raw_query))
+        {
             throw invalid_argument("Irregular query : cannot contain special char"s);
         }
 
         vector<string> matched_words;
         for (const string& word : query.plus_words) {
-            if (word_to_document_freqs_.count(word) == 0) {
+            if (word_to_document_freqs_.count(word) == 0)
+            {
                 continue;
             }
-            if (word_to_document_freqs_.at(word).count(document_id)) {
+            if (word_to_document_freqs_.at(word).count(document_id))
+            {
                 matched_words.push_back(word);
             }
         }
         for (const string& word : query.minus_words) {
-            if (word_to_document_freqs_.count(word) == 0) {
+            if (word_to_document_freqs_.count(word) == 0)
+            {
                 continue;
             }
-            if (word_to_document_freqs_.at(word).count(document_id)) {
+            if (word_to_document_freqs_.at(word).count(document_id))
+            {
                 matched_words.clear();
                 break;
             }
@@ -200,9 +217,9 @@ public:
     }
 
     int GetDocumentId(int index) const {
-        if(index>=0 && index < document_ID.size())
+        if (index >= 0 && index < document_id.size())
         {
-            return document_ID[index];
+            return document_id[index];
         }
         else
         {
@@ -219,7 +236,7 @@ private:
     const set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
-    vector<int> document_ID;
+    vector<int> document_id;
 
     bool IsStopWord(const string& word) const
     {
@@ -236,7 +253,8 @@ private:
     vector<string> SplitIntoWordsNoStop(const string& text) const {
         vector<string> words;
         for (const string& word : SplitIntoWords(text)) {
-            if (!IsStopWord(word)) {
+            if (!IsStopWord(word))
+            {
                 words.push_back(word);
             }
         }
@@ -244,7 +262,8 @@ private:
     }
 
     static int ComputeAverageRating(const vector<int>& ratings) {
-        if (ratings.empty()) {
+        if (ratings.empty())
+        {
             return 0;
         }
         int rating_sum = accumulate(ratings.begin(),ratings.end(),0);
@@ -260,12 +279,14 @@ private:
     QueryWord ParseQueryWord(string text) const {
         bool is_minus = false;
         // Word shouldn't be empty
-        if (text[0] == '-') {
+        if (text[0] == '-')
+        {
             is_minus = true;
             text = text.substr(1);
         }
-        
-        if(text[0]=='-' || text.empty()){
+
+        if (text[0]=='-' || text.empty())
+        {
             throw invalid_argument("Irregular : cannot be empty after '-' , and cannot contain  more 1 '-'");
         }
 
@@ -281,10 +302,13 @@ private:
         Query query;
         for (const string& word : SplitIntoWords(text)) {
             const QueryWord query_word = ParseQueryWord(word);
-            if (!query_word.is_stop) {
-                if (query_word.is_minus) {
+            if (!query_word.is_stop)
+            {
+                if (query_word.is_minus)
+                {
                     query.minus_words.insert(query_word.data);
-                } else {
+                } else
+                {
                     query.plus_words.insert(query_word.data);
                 }
             }
@@ -302,20 +326,23 @@ private:
                                       DocumentPredicate document_predicate) const {
         map<int, double> document_to_relevance;
         for (const string& word : query.plus_words) {
-            if (word_to_document_freqs_.count(word) == 0) {
+            if (word_to_document_freqs_.count(word) == 0)
+            {
                 continue;
             }
             const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
             for (const auto [document_id, term_freq] : word_to_document_freqs_.at(word)) {
                 const auto& document_data = documents_.at(document_id);
-                if (document_predicate(document_id, document_data.status, document_data.rating)) {
+                if (document_predicate(document_id, document_data.status, document_data.rating))
+                {
                     document_to_relevance[document_id] += term_freq * inverse_document_freq;
                 }
             }
         }
 
         for (const string& word : query.minus_words) {
-            if (word_to_document_freqs_.count(word) == 0) {
+            if (word_to_document_freqs_.count(word) == 0)
+            {
                 continue;
             }
             for (const auto [document_id, _] : word_to_document_freqs_.at(word)) {
