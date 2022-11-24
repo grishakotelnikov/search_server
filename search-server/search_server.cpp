@@ -16,9 +16,10 @@
         const double inv_word_count = 1.0 / words.size();
         for (const std::string& word : words) {
            word_to_document_freqs_[word][document_id] += inv_word_count;
+            document_to_word_freqs_[document_id][word] += inv_word_count;
         }
         documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
-        document_ids_.push_back(document_id);
+        document_ids_.insert(document_id);
     }
 
 std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, DocumentStatus status) const {
@@ -34,9 +35,6 @@ std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_quer
     }
     int SearchServer::GetDocumentCount() const {
         return documents_.size();
-    }
-    int SearchServer::GetDocumentId(int index) const {
-        return document_ids_.at(index);
     }
 
 std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument(const std::string& raw_query,
@@ -63,8 +61,28 @@ std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument
         }
         return {matched_words, documents_.at(document_id).status};
     }
+std::map<std::string, double> map;
+const std::map<std::string, double>&  SearchServer::GetWordFrequencies(int document_id) const{
+    if (document_to_word_freqs_.count(document_id)){
+        return document_to_word_freqs_.at(document_id);
+    }
+    return map;
+}
+void SearchServer::RemoveDocument(int document_id){
+    std::string curr_word;
+    for (auto t : word_to_document_freqs_){
+        if(t.second.find(document_id) != t.second.end()) {
+            curr_word = t.first;
+        }
+    }
+    word_to_document_freqs_.erase(curr_word);
+    documents_.erase(document_id);
+    document_to_word_freqs_.erase(document_id);
+    document_ids_.erase(document_id);
 
-    bool SearchServer::IsStopWord(const std::string& word) const {
+}
+
+bool SearchServer::IsStopWord(const std::string& word) const {
         return stop_words_.count(word) > 0;
     }
     bool SearchServer::IsValidWord(const std::string& word) {
@@ -154,19 +172,6 @@ void FindTopDocuments(const SearchServer& search_server, const std::string& raw_
     }
 }
 
-void MatchDocuments(const SearchServer& search_server, const std::string& query) {
-    try {
-        std::cout << "Matching for request: "s << query << std::endl;
-        const int document_count = search_server.GetDocumentCount();
-        for (int index = 0; index < document_count; ++index) {
-            const int document_id = search_server.GetDocumentId(index);
-            const auto [words, status] = search_server.MatchDocument(query, document_id);
-            PrintMatchDocumentResult(document_id, words, status);
-        }
-    } catch (const std::exception& e) {
-        std::cout << "Error in matchig request "s << query << ": "s << e.what() << std::endl;
-    }
-}
 
 void PrintDocument(const Document& document) {
     std::cout << "{ "s
@@ -174,6 +179,7 @@ void PrintDocument(const Document& document) {
          << "relevance = "s << document.relevance << ", "s
          << "rating = "s << document.rating << " }"s <<std:: endl;
 }
+
 void PrintMatchDocumentResult(int document_id, const std::vector<std::string>& words, DocumentStatus status) {
     std::cout << "{ "s
          << "document_id = "s << document_id << ", "s
