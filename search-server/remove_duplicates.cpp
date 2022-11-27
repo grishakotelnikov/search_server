@@ -1,5 +1,3 @@
-
-
 #include "remove_duplicates.h"
 
 void RemoveDuplicates(SearchServer& search_server) {
@@ -11,7 +9,7 @@ void RemoveDuplicates(SearchServer& search_server) {
         for (const auto& [word, _] : search_server.GetWordFrequencies(document_id)) {
             words_in_document.insert(word);
         }
-        if (unique_documents_words.count(words_in_document))
+        if (unique_documents_words.count(words_in_document) != 0)
         {
             ids_to_remove.push_back(document_id);
         }
@@ -25,4 +23,3 @@ void RemoveDuplicates(SearchServer& search_server) {
         search_server.RemoveDocument(document_id);
     }
 }
-
